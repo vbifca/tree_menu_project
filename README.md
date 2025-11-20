@@ -1,143 +1,238 @@
-# Django Tree Menu
+# Django Tree Menu App
 
-A Django application for creating and managing hierarchical tree menus with efficient database queries and template tag rendering.
+Приложение для Django, реализующее древовидное меню с поддержкой иерархической структуры.
 
-## Features
+##  Требования проекта
 
-- **Hierarchical Menu Structure**: Create nested menu items with parent-child relationships
-- **Template Tag Rendering**: Use `{% draw_menu 'menu_name' %}` to render menus in templates
-- **URL-Based Active Detection**: Automatically highlights active menu items based on current URL
-- **Smart Expansion**: Automatically expands parent items above selected item and first-level children
-- **Multiple Menus**: Support for multiple named menus on the same page
-- **Efficient Queries**: Exactly 1 database query per menu rendering
-- **Admin Interface**: Full Django admin integration for menu management
-- **Flexible URLs**: Support for both named URLs and explicit URL paths
+На основе файла `task.txt`, приложение должно соответствовать следующим требованиям:
 
-## Installation
+1. **Древовидная структура меню** - пункты меню хранятся в базе данных с поддержкой иерархии
+2. **Template tag** - отрисовка меню через `{% draw_menu 'menu_name' %}`
+3. **Логика разворачивания**:
+   - Все родительские элементы активного пункта разворачиваются
+   - Первый уровень дочерних элементов активного пункта разворачивается
+4. **Определение активного пункта** - по URL текущей страницы
+5. **Поддержка нескольких меню** - идентифицируются по имени
+6. **Интерфейс администратора** - редактирование меню через Django admin
+7. **Поддержка URL** - пункты меню могут ссылаться на явные URL или named URLs
+8. **Производительность** - ровно 1 запрос к БД при отрисовке меню
 
-1. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+##  Функциональность
 
-2. Add `'menu'` to your `INSTALLED_APPS` in `settings.py`:
-   ```python
-   INSTALLED_APPS = [
-       # ...
-       'menu',
-   ]
-   ```
+- **Древовидное меню** с поддержкой неограниченной вложенности
+- **Template tag** для простого использования в шаблонах
+- **Автоматическое разворачивание** меню на основе текущей страницы
+- **Поддержка нескольких меню** на одной странице
+- **Оптимизированная производительность** - 1 запрос к БД на меню
+- **Интеграция с Django Admin** для удобного управления
 
-3. Run migrations:
-   ```bash
-   python manage.py migrate
-   ```
+##  Установка
 
-4. Create sample menu data:
-   ```bash
-   python manage.py populate_menu
-   ```
+1. Скопируйте приложение `menu` в ваш проект Django
+2. Добавьте `'menu'` в `INSTALLED_APPS` в settings.py
+3. Выполните миграции: `python manage.py migrate`
+4. Заполните базу данных тестовыми данными: `python manage.py populate_menu`
 
-## Usage
+## ️ Структура проекта
 
-### Creating Menus in Admin
+```
+tree_menu_project/
+├── menu/                    # Основное приложение
+│   ├── migrations/          # Миграции базы данных
+│   ├── templatetags/        # Пользовательские теги шаблонов
+│   │   └── menu_tags.py     # Тег draw_menu
+│   ├── admin.py            # Настройки админки
+│   ├── models.py           # Модели Menu и MenuItem
+│   ├── views.py            # Представления для страниц
+│   ├── urls.py             # URL паттерны
+│   └── tests.py            # Тесты
+├── templates/              # Шаблоны Django
+│   ├── base.html           # Базовый шаблон с меню
+│   └── menu/               # Шаблоны страниц меню
+├── manage.py               # Скрипт управления Django
+└── requirements.txt        # Зависимости проекта
+```
 
-1. Go to Django admin (`/admin/`)
-2. Add a new Menu with a unique name
-3. Add Menu Items with:
-   - **Title**: Display text
-   - **Parent**: Parent menu item (leave empty for root items)
-   - **Named URL**: Django URL pattern name (e.g., `'home'`)
-   - **Explicit URL**: Direct URL path (e.g., `'/about/'`)
-   - **Order**: Display order within parent
+##  Использование
 
-### Template Usage
+### В шаблонах Django
 
 ```django
 {% load menu_tags %}
 
-<!-- Render a menu by name -->
+<!-- Отрисовка главного меню -->
 {% draw_menu 'main_menu' %}
 
-<!-- Multiple menus on one page -->
-{% draw_menu 'main_menu' %}
+<!-- Отрисовка дополнительного меню -->
 {% draw_menu 'footer_menu' %}
 ```
 
-### URL Configuration
-
-Menu items can use either:
-- **Named URLs**: Use Django URL pattern names (recommended)
-- **Explicit URLs**: Use direct URL paths
-
-Priority: Named URL > Explicit URL
-
-## Menu Expansion Logic
-
-When a menu item is active (based on current URL):
-- All parent items above the selected item are expanded
-- First level of children under the selected item are expanded
-
-Example:
-```
-Home
-About
-Services (expanded)
-├── Web Development (active)
-│   ├── Frontend Development (expanded)
-│   └── Backend Development (expanded)
-└── Mobile Apps
-Contact
-```
-
-## Database Optimization
-
-The menu system uses exactly 1 database query per menu rendering through:
-- `prefetch_related` for efficient loading of menu items and their children
-- Single query to fetch all menu data at once
-
-## Testing
-
-Run the test suite:
-```bash
-python manage.py test menu
-```
-
-## API Reference
-
-### Models
-
-#### Menu
-- `name`: Unique name for the menu
-- `description`: Optional description
-
-#### MenuItem
-- `menu`: ForeignKey to Menu
-- `title`: Display text
-- `parent`: Self-referential ForeignKey for hierarchy
-- `named_url`: Django URL pattern name
-- `explicit_url`: Direct URL path
-- `order`: Display order
-
-### Template Tags
-
-#### `draw_menu`
-Renders a hierarchical menu by name.
+### Пример базового шаблона
 
 ```django
-{% draw_menu 'menu_name' %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{% block title %}Мой сайт{% endblock %}</title>
+    <style>
+        .tree-menu ul { display: none; }
+        .tree-menu li.active > ul { display: block; }
+        .tree-menu li.active > a { color: blue; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <nav>
+        {% load menu_tags %}
+        {% draw_menu 'main_menu' %}
+    </nav>
+
+    <main>
+        {% block content %}
+        {% endblock %}
+    </main>
+</body>
+</html>
 ```
 
-### Methods
+### В админке Django
 
-#### `MenuItem.get_url()`
-Returns the URL for the menu item (named URL > explicit URL).
+1. Перейдите в `/admin/`
+2. В разделе "Menu" вы можете:
+   - Создавать новые меню
+   - Добавлять пункты меню
+   - Настраивать иерархию (родительские и дочерние элементы)
+   - Задавать URL (named URL или явный URL)
 
-#### `MenuItem.is_active(current_url)`
-Checks if the menu item is active based on current URL.
+### Создание меню через код
 
-#### `MenuItem.get_ancestors()`
-Returns all ancestors of the menu item.
+```python
+from menu.models import Menu, MenuItem
 
-#### `MenuItem.get_descendants(include_self=False)`
-Returns all descendants of the menu item.
+# Создание меню
+main_menu = Menu.objects.create(name='main_menu', title='Главное меню')
+
+# Добавление корневых элементов
+web_dev = MenuItem.objects.create(
+    menu=main_menu,
+    title='Web Development',
+    url='/web-development/'
+)
+
+# Добавление дочерних элементов
+frontend = MenuItem.objects.create(
+    menu=main_menu,
+    title='Frontend Development',
+    url='/frontend-development/',
+    parent=web_dev
+)
+```
+
+## ️ Технические требования
+
+- **Django** 3.2+
+- **Python** 3.8+
+- **База данных** - любая поддерживаемая Django (SQLite, PostgreSQL, MySQL)
+
+##  Архитектура
+
+### Модели данных
+
+- **Menu** - представляет именованное меню
+  - `name` - уникальное имя меню для использования в template tag
+  - `title` - отображаемое название меню
+- **MenuItem** - пункт меню с поддержкой иерархии
+  - `menu` - ссылка на родительское меню
+  - `parent` - ссылка на родительский пункт (для создания иерархии)
+  - `title` - отображаемый текст пункта
+  - `url` - URL или named URL
+  - `named_url` - имя named URL (если используется named URL)
+
+### Template Tag
+
+- **draw_menu** - основной тег для отрисовки меню
+  - Загружает все элементы меню одним запросом
+  - Строит иерархию в памяти
+  - Определяет активный элемент по URL
+  - Применяет логику разворачивания
+
+### Логика разворачивания
+
+При отрисовке меню:
+- **Все родительские элементы** активного пункта разворачиваются
+- **Первый уровень дочерних элементов** активного пункта разворачивается
+- **Активный пункт** определяется по URL текущей страницы
+- **CSS классы**: `.active` для активного элемента, `.expanded` для развернутых
+
+##  Производительность
+
+Приложение оптимизировано для минимального количества запросов к БД:
+- **1 запрос на меню** - загружаются все элементы меню одним запросом
+- **select_related** - предварительная загрузка связанных данных
+- **Иерархия в памяти** - построение дерева после загрузки данных
+- **Кэширование** - можно легко добавить кэширование меню
+
+##  Тестирование
+
+Запуск тестов:
+```bash
+python manage.py test menu.tests
+```
+
+Тесты покрывают:
+- Создание иерархии меню
+- Определение активного элемента
+- Логику разворачивания
+- Производительность (количество запросов)
+- URL разрешение
+
+##  Команды управления
+
+- `python manage.py populate_menu` - заполнение базы тестовыми данными
+- `python manage.py runserver` - запуск сервера разработки
+- `python manage.py test menu.tests` - запуск тестов
+
+##  Пример структуры меню
+
+```
+Главное меню (main_menu)
+├── Web Development
+│   ├── Frontend Development
+│   ├── Backend Development
+│   └── Mobile Development
+│       ├── Android Development
+│       └── iOS Development
+└── Services
+    ├── Consulting
+    └── Support
+```
+
+##  Разработка
+
+### Внесение изменений
+
+1. Клонируйте репозиторий
+2. Создайте виртуальное окружение: `python -m venv venv`
+3. Активируйте окружение: `venv\Scripts\activate` (Windows)
+4. Установите зависимости: `pip install -r requirements.txt`
+5. Выполните миграции: `python manage.py migrate`
+6. Запустите тесты: `python manage.py test menu.tests`
+
+### Структура кода
+
+- **menu/models.py** - модели данных с иерархическими отношениями
+- **menu/templatetags/menu_tags.py** - template tag и логика рендеринга
+- **menu/admin.py** - настройки административного интерфейса
+- **menu/views.py** - представления для страниц меню
+- **menu/urls.py** - URL маршруты
+- **menu/tests.py** - тесты функциональности
+
+### Принципы разработки
+
+- **Один запрос к БД** - строгое соблюдение требования производительности
+- **Чистая архитектура** - разделение ответственности между компонентами
+- **Тестирование** - покрытие всех ключевых функций тестами
+- **Документация** - подробные комментарии и README на русском языке
+
+## Контакты
+
+Для вопросов и предложений по улучшению функциональности древовидного меню обращайтесь к разработчику.
